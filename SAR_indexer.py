@@ -8,6 +8,7 @@ import re
 import os
 import pickle
 import sgml_parser as parser
+from nltk.stem import SnowballStemmer
 
 #Indices y lista que contendra los indices al guardarlos en disco
 normalIndex = {}
@@ -53,6 +54,27 @@ def indexar(parsed_doc, docid,indice):
     
     return indice
 
+def stemDicc(dic,idioma):
+    res = {}
+    stemmer = SnowballStemmer(idioma)
+    keys = list(dic.keys())
+    values = list(dic.values())
+    #Hago stemming de las keys del diccionario
+    for i in range(len(keys)):
+        keys[i]=stemmer.stem(keys[i])
+
+    for i in range(len(keys)):
+        key = keys[i]
+        value = values[i]
+        #Añado cada key no existente en el diccionario final
+        if key not in res:
+            res[key] = value
+        #Si existe la key, añado solo las ocurrencias que no tenia previamente
+        else:
+            for j in range(len(value)):
+                if value[j] not in res[key]:
+                    res[key].append(value[j])
+    return res
 
 if __name__ == '__main__':
     if(len(sys.argv)!=3):
@@ -86,10 +108,20 @@ if __name__ == '__main__':
         docid = docid + 1
         indexar(cat_doc, docid, categoryIndex)
 
+    #Creo los diccionarios stemmizados
+    idioma = "spanish"
+    normalStem = stemDicc(normalIndex, idioma)
+    titleStem = stemDicc(titleIndex, idioma)
+    catStem = stemDicc(categoryIndex, idioma)
+
     #Añado a una lista final todos los indices para guardarlos en disco
     finalIndex.append(normalIndex)
     finalIndex.append(titleIndex)
     finalIndex.append(categoryIndex)
+    finalIndex.append(normalStem)
+    finalIndex.append(titleStem)
+    finalIndex.append(catStem)
 
     #Guardo el archivo en disco con el nombre que se le ha proporcionado por consola
+    print('Created index: normalIndex, titleIndex, categoryIndex, normalStem, titleStem, catStem')
     pickle.dump(finalIndex, open(index,'wb'))

@@ -41,16 +41,31 @@ def indexar(parsed_doc, docid,indice):
         #Transformamos en una lista de terminos
         aux = aux.split()
         posid = i
-        #Creo el id final -> (id documento, posicion)
-        finalid = (docid,posid)
+
         #Añado al indice        
         for j in range(len(aux)):
+            # Creo el id final -> (id documento, posicion de la noticia,lista de posiciones de palabras)
+            finalid = (docid, posid, [j])
             term = aux[j]            
             if term not in indice:
                 indice[term] = [finalid]
+            elif term in indice:
 
-            elif finalid not in indice[term]:
-                indice[term].append(finalid)
+
+
+                listaTuplas = indice[term]
+                encontrado = False
+                for tupla in listaTuplas:
+                    if tupla[0] == finalid[0] and tupla[1] == finalid[1]:
+                        tupla[2].append(j)
+                        encontrado = True
+                        break
+                if not encontrado:
+                    indice[term].append(finalid)
+
+
+
+
     
     return indice
 
@@ -121,6 +136,10 @@ if __name__ == '__main__':
     finalIndex.append(normalStem)
     finalIndex.append(titleStem)
     finalIndex.append(catStem)
+
+    for dicc in finalIndex:
+        for key in list(dicc.keys()):
+            print(len(dicc[key]))
 
     #Guardo el archivo en disco con el nombre que se le ha proporcionado por consola
     print('Created index: normalIndex, titleIndex, categoryIndex, normalStem, titleStem, catStem')

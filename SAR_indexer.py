@@ -19,6 +19,33 @@ finalIndex = []
 
 my_re = re.compile('\W+')
 
+def algoritmoOR_int(lista1,lista2):
+    res = []
+    i = 0
+    j = 0
+    while(i<len(lista1) and j<len(lista2)):
+        if lista1[i] < lista2[j]:
+            res.append(lista1[i])
+            i += 1
+        elif lista1[i] > lista2[j]:
+            res.append(lista2[j])
+            j += 1
+        else:
+            res.append(lista1[i])
+            i += 1
+            j += 1
+    if i == len(lista1):
+        while(j<len(lista2)):
+            res.append(lista2[j])
+            j += 1
+    if j == len(lista2):
+        while(i<len(lista1)):
+            res.append(lista1[i])
+            i += 1
+    return res
+
+
+
 def procesar_doc(doc, eti):
     
     #Guardo como string el contenido del documento
@@ -44,58 +71,63 @@ def indexar(parsed_doc, docid,indice):
 
         #Añado al indice        
         for j in range(len(aux)):
-            # Creo el id final -> (id documento, posicion de la noticia,lista de posiciones de palabras)
-            finalid = (docid, posid, [j])
+            # Creo el id final -> {(numero documento, posicion relativa) : [lista de posiciones de palabra]}
+            finalid = {(docid,posid):[j]}
             term = aux[j]            
             if term not in indice:
-                indice[term] = [finalid]
+                indice[term] = finalid
             elif term in indice:
-
-
-
-                listaTuplas = indice[term]
-                encontrado = False
-                for tupla in listaTuplas:
-                    if tupla[0] == finalid[0] and tupla[1] == finalid[1]:
-                        tupla[2].append(j)
-                        encontrado = True
-                        break
-                if not encontrado:
-                    indice[term].append(finalid)
-
-
-
-
-    
+                dic = indice[term]
+                listaPosiciones = dic.get((docid,posid),[])
+                listaPosiciones.append(j)
+                dic[(docid,posid)] = listaPosiciones
     return indice
 
 def stemDicc(dic,idioma):
     res = {}
     stemmer = SnowballStemmer(idioma)
-    keys = list(dic.keys())
-    values = list(dic.values())
-    #Hago stemming de las keys del diccionario
-    for i in range(len(keys)):
-        keys[i]=stemmer.stem(keys[i])
+    terminos = list(dic.keys())
+    diccionarios = list(dic.values())
 
-    for i in range(len(keys)):
-        key = keys[i]
-        value = values[i]
+    #Hago stemming de las keys del diccionario
+    for i in range(len(terminos)):
+        terminos[i]=stemmer.stem(terminos[i])
+
+    for i in range(len(terminos)):
+        #Palabra stemming del indice
+        termino = terminos[i]
+        #Diccionario asociado a la palabra
+        valorTermino = diccionarios[i]
         #Añado cada key no existente en el diccionario final
-        if key not in res:
-            res[key] = value
+        if termino not in res:
+            res[termino] = valorTermino
+
         #Si existe la key, añado solo las ocurrencias que no tenia previamente
         else:
-            for j in range(len(value)):
-                if value[j] not in res[key]:
-                    res[key].append(value[j])
+            dicto = res[termino]
+            if(type(dicto) == list):
+                print('MAGIA ARCANA')
+                print(i)
+                print(terminos[i-1])
+                print(diccionarios[i-1])
+                print(dicto)
+                sys.exit()
+            listaKeys = []
+            for k in dicto.keys():
+                listaKeys.append(k)
+            for tupla in list(valorTermino.keys()):
+                if tupla not in listaKeys:
+                    dicto[tupla] = valorTermino[tupla]
+                else:
+                    #La magia del OR
+                    res[termino][tupla] = algoritmoOR_int(dicto[tupla],valorTermino[tupla])
     return res
 
 if __name__ == '__main__':
     if(len(sys.argv)!=3):
         print('Usage: python3 SAR_indexer.py <ruta directorio> <nombre de indice>')
         sys.exit()
-
+    lengths = {}
     ruta = sys.argv[1]
     index = sys.argv[2]
     fitxers = os.listdir(ruta)
@@ -106,6 +138,7 @@ if __name__ == '__main__':
         text_doc = procesar_doc(doc, 'TEXT')
         docid = docid+1
         indexar(text_doc,docid,normalIndex)
+        lengths[docid]=len(text_doc)
 
     #Recorro los ficheros buscando en los titulos e indexando en su correspondiente indice
     docid = 0
@@ -136,10 +169,8 @@ if __name__ == '__main__':
     finalIndex.append(normalStem)
     finalIndex.append(titleStem)
     finalIndex.append(catStem)
+    finalIndex.append(lengths)
 
-    for dicc in finalIndex:
-        for key in list(dicc.keys()):
-            print(len(dicc[key]))
 
     #Guardo el archivo en disco con el nombre que se le ha proporcionado por consola
     print('Created index: normalIndex, titleIndex, categoryIndex, normalStem, titleStem, catStem')

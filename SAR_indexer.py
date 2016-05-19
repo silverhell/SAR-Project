@@ -64,6 +64,7 @@ def indexar(parsed_doc, docid,indice):
         #Paso el texto a minuscula
         aux = aux.lower()
         #Elimino caracteres no alfanumericos
+        aux = aux.replace('-',' ')
         aux = my_re.sub(' ',aux)
         #Transformamos en una lista de terminos
         aux = aux.split()

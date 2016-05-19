@@ -112,9 +112,7 @@ def stemDicc(dic,idioma):
                 print(diccionarios[i-1])
                 print(dicto)
                 sys.exit()
-            listaKeys = []
-            for k in dicto.keys():
-                listaKeys.append(k)
+            listaKeys = list(dicto.keys())
             for tupla in list(valorTermino.keys()):
                 if tupla not in listaKeys:
                     dicto[tupla] = valorTermino[tupla]
@@ -156,6 +154,13 @@ if __name__ == '__main__':
         docid = docid + 1
         indexar(cat_doc, docid, categoryIndex)
 
+    docid = 0
+    for fitxer in fitxers:
+        doc = open(ruta + '/' + fitxer, 'r')
+        date_doc = procesar_doc(doc, 'DATE')
+        docid = docid + 1
+        indexar(date_doc, docid, dateIndex)
+
     #Creo los diccionarios stemmizados
     idioma = "spanish"
     normalStem = stemDicc(normalIndex, idioma)
@@ -169,9 +174,10 @@ if __name__ == '__main__':
     finalIndex.append(normalStem)
     finalIndex.append(titleStem)
     finalIndex.append(catStem)
+    finalIndex.append(dateIndex)
     finalIndex.append(lengths)
 
 
     #Guardo el archivo en disco con el nombre que se le ha proporcionado por consola
-    print('Created index: normalIndex, titleIndex, categoryIndex, normalStem, titleStem, catStem')
+    print('Created index: normalIndex, titleIndex, categoryIndex, normalStem, titleStem, catStem, dateIndex')
     pickle.dump(finalIndex, open(index,'wb'))

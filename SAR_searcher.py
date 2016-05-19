@@ -9,17 +9,20 @@ import nltk
 from nltk.stem import SnowballStemmer
 from nltk.corpus import stopwords
 import SAR_indexer as indexer
+import sgml_parser as parser
 import os
 
 
 #Utils
 operadores = ['AND', 'OR', 'NOT']
 defaultOperator = 'AND'
-etis = ['headline','category','text']
+etis = ['headline','category','text','date']
 
 
 #ALGORITMO OR
 def algoritmoOR(tuples1,tuples2):
+    tuples1 = sorted(tuples1)
+    tuples2 = sorted(tuples2)
     res = indexer.algoritmoOR_int(tuples1,tuples2)
     return res
 #Fin algoritmoOR
@@ -30,6 +33,9 @@ def algoritmoAND(tuples1, tuples2):
     i = 0
     j = 0
     res = []
+    tuples1 = sorted(tuples1)
+    tuples2 = sorted(tuples2)
+
     while(i<len(tuples1) and j<len(tuples2)):
         if tuples1[i] < tuples2[j]:
             i += 1
@@ -45,28 +51,22 @@ def algoritmoAND(tuples1, tuples2):
 
 #EL MILLOR NOT DE TOTA LA PROMOCIO
 def algoritmoNOT(tuples):
-    lengths = indices[6]
-    lengths = list(lengths.values())
+    tuples = sorted(tuples)
     res = []
+    lengths = list(indices[7].values())
     i = 1
-    j = 1
     k = 0
-    l = 0
-    final = False
-    while(j<=lengths[l]):
-        tupla = (i, j)
-        if tupla < tuples[k]:
-            res.append(tupla)
+    while(i<=len(lengths)):
+        j = 1
+        while(j<=lengths[i-1]):
+            tupla = (i,j)
+            if tupla != tuples[k]:
+                res.append(tupla)
+            else:
+                if k < len(tuples)-1:
+                    k += 1
             j += 1
-        else:
-            j += 1
-            k += 1
-
-        if j == lengths[l]:
-            l += 1
-            i += 1
-            j = 1
-
+        i += 1
     return res
 #Fin algoritmoNOT
 
@@ -122,7 +122,7 @@ def consultaEtis(consulta,stem):
             if word == 'headline':
                 if not stem:
                     indice = indices[1]
-                    res = busquedaUnaParaula(consulta[i+1],indice)
+                    res = busquedaUnaParaula(consulta[i + 1], indice)
                 else:
                     indice = indices[4]
                     res = busquedaUnaParaula(consulta[i + 1], indice)
@@ -140,11 +140,14 @@ def consultaEtis(consulta,stem):
                 else:
                     indice = indices[3]
                     res = busquedaUnaParaula(consulta[i + 1], indice)
+            elif word == 'date':
+                indice = indices[6]
+                res = busquedaUnaParaula(consulta[i + 1], indice)
     return res
 #Fin consultaEtis
 
 
-#TO BE IMPLEMENTED
+
 def parseConsulta(consulta,stem):
     if not stem:
         indice = indices[0]
@@ -156,27 +159,27 @@ def parseConsulta(consulta,stem):
         word = consulta[i]
         if word in operadores and word != defaultOperator:
             if word == 'OR' and consulta[i+1]!='NOT':
-                tuples1 = indice[consulta[i-1]]
-                tuples2 = indice[consulta[i+1]]
+                tuples1 = list(indice[consulta[i-1]].keys())
+                tuples2 = list(indice[consulta[i+1]].keys())
                 res = algoritmoOR(tuples1, tuples2)
 
             elif word == 'OR' and consulta[i+1]=='NOT':
-                tuples1 = indice[consulta[i-1]]
-                tuples2 = indice[consulta[i+2]]
+                tuples1 = list(indice[consulta[i-1]].keys())
+                tuples2 = list(indice[consulta[i+2]].keys())
                 res = algoritmoORNOT(tuples1, tuples2)
 
             elif word == 'NOT':
-                tuples = indice[consulta[i+1]]
+                tuples = list(indice[consulta[i+1]].keys())
                 res = algoritmoNOT(tuples)
 
         elif word == defaultOperator and consulta[i+1] != 'NOT':
-            tuples1 = indice[consulta[i-1]]
-            tuples2 = indice[consulta[i+1]]
+            tuples1 = list(indice[consulta[i-1]].keys())
+            tuples2 = list(indice[consulta[i+1]].keys())
             res = algoritmoAND(tuples1, tuples2)
 
         elif word == defaultOperator and consulta[i+1] == 'NOT':
-            tuples1 = indice[consulta[i - 1]]
-            tuples2 = indice[consulta[i + 2]]
+            tuples1 = list(indice[consulta[i-1]].keys())
+            tuples2 = list(indice[consulta[i+2]].keys())
             res = algoritmoANDNOT(tuples1, tuples2)
 
     return res
@@ -205,21 +208,50 @@ def snippets(noticia, busqueda):
 
 
 #TO BE IMPLEMENTED
-def retorno(posting, busqueda):
-    ficheros = os.listdir(index)
+def retorno(posting, consulta):
+    ficheros = os.listdir(dir)
+    docsid = []
+    for tupla in posting:
+        if tupla[0] not in docsid:
+            docsid.append(tupla[0])
 
     if len(posting) <=2:
         #Print titulo y cuerpo de las noticias
+        for tupla in posting:
+            fichero = open(dir+'/'+ficheros[tupla[0]-1])
+            fichero = fichero.read()
+            noticias = parser.parse(fichero)
+            print(parser.busqueda('TITLE', noticias)[tupla[1]-1])
+            print(parser.busqueda('TEXT', noticias)[tupla[1]-1])
+            print('###########################################')
 
-        print('To do')
     elif len(posting) > 2 and len(posting) <=5:
         #Print titulo y snippets
-        print('To do')
+        for tupla in posting:
+            fichero = open(dir + '/' + ficheros[tupla[0] - 1]).read()
+            noticias = parser.parse(fichero)
+            print(parser.busqueda('TITLE', noticias)[tupla[1] - 1])
+            snippet = snippets(parser.busqueda('TEXT',noticias),consulta)
+            print(snippet)
+            print('###########################################')
     else:
-        #Print titulos
-        print('To do')
+        #Print titulos de las 10 primeras
+        if len(posting) < 10:
+            max_prints = len(posting)
+        else:
+            max_prints = 10
 
-    #En todos los casos, print del tamaño total
+        for i in range(max_prints):
+            tupla = posting[i]
+            fichero = open(dir+'/'+ficheros[tupla[0] - 1]).read()
+            noticias = parser.parse(fichero)
+            print(parser.busqueda('TITLE', noticias)[tupla[1] - 1])
+            print('###########################################')
+
+
+    #En todos los casos, print de los nombres de los dicheros y del tamaño total
+    for id in docsid:
+        print(ficheros[id-1])
     print(len(posting))
 #Fin retorno
 
@@ -240,8 +272,12 @@ if __name__ == '__main__':
         sys.exit()
 
     #Cargo el archivo binario con la lista de indices
+    dir = sys.argv[1]
+    dir = dir[0:len(dir)-1]
+    #dir = str(dir)
     index = open(sys.argv[1],'rb')
     indices = pickle.load(index)
+    indice = indices[0]
 
     #Bucle de consultas
     while True:
@@ -268,19 +304,21 @@ if __name__ == '__main__':
                 else:
                     indice = indices[3]
                 res = busquedaUnaParaula(consulta[0], indice)
-                print(len(res))
+                retorno(res,consulta)
             else:
                 res = consultaEtis(consulta,stem)
-                print(len(res))
+                retorno(res,consulta)
 
         #Activado solo stopwords
         if(sys.argv[2] != '0' and sys.argv[3] == '0' and not literal):
             #Quitar stopwords
+            indice = indice[0]
             consulta = remove_stopwords(consulta.split(),'spanish')
 
         #Activado solo stemming
         if(sys.argv[3] != '0' and sys.argv[2] == '0'):
             #Aplicar stemming
+            indice = indices[3]
             stemmer = SnowballStemmer('spanish')
             consulta = consulta.split()
             for i in range(len(consulta)):
@@ -289,6 +327,7 @@ if __name__ == '__main__':
 
         #Activado tanto stopwords como stemming
         if(sys.argv[2] != '0' and sys.argv[3] != '0'):
+            indice = indices[3]
             stemmer = SnowballStemmer('spanish')
             if not literal:
                 consulta = remove_stopwords(consulta.split(), 'spanish')
@@ -296,5 +335,18 @@ if __name__ == '__main__':
                 if consulta[i] not in operadores:
                     consulta[i] = stemmer.stem(consulta[i])
 
+
+        if len(consulta)==1:
+            res = busquedaUnaParaula(consulta[0], indice)
+            retorno(res, consulta)
+        elif len(consulta)==3 and consulta[1] in operadores:
+            if consulta[1] == 'NOT':
+                aux = algoritmoNOT(list(indice[consulta[2]].keys()))
+                res = algoritmoANDNOT(list(indice[consulta[1]].keys()),aux)
+                retorno(res)
+            else:
+                res = parseConsulta(consulta, stem)
+
+                retorno(res, consulta)
 
 

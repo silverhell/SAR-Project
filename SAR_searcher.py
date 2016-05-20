@@ -132,6 +132,7 @@ def busquedaLiteral(busqueda, stem):
         i = 2
         while(i<len(diccionaris)):
             inicial = superMetodoImpostorDic(inicial,diccionaris[i])
+            i += 1
 
     return list(inicial.keys())
 

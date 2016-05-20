@@ -1,0 +1,4 @@
+Busqueda literal de mes de 2 elements, rip.
+Espais no conten com a AND.
+Problemes amb les busquedes que continguen la paraula valencia. Excepte la busqueda: valencia
+Si el index no se diu com el directori + 1 caracter, cataplum. Ex: mini_enero -> mini_enero2
